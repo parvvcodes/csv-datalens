@@ -6,7 +6,7 @@ import streamlit as st
 import matplotlib.pyplot as plt
 import seaborn as sns
 from streamlit_option_menu import option_menu
-from reportlab.lib.pagesizes import A4
+from reportlab.lib.pagesizes import A4,landscape
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_CENTER
 from reportlab.lib import colors
@@ -277,7 +277,6 @@ def data_completeness_score(df: pd.DataFrame) -> float:
 
     numeric_ratio = df.select_dtypes(include=["int64", "float64"]).shape[1] / max(len(df.columns), 1)
 
-    # convert all to "goodness" score
     score = (
         (1 - missing_ratio) +
         (1 - dup_ratio) +
@@ -303,7 +302,6 @@ csv_file = st.file_uploader("Upload your CSV file", type=["csv"])
 if csv_file is not None:
     df = pd.read_csv(csv_file)
 
-    # ── SIDEBAR NAV ──────────────────────────
     with st.sidebar:
         selected = option_menu(
             menu_title="Dashboard Menu",
@@ -659,7 +657,6 @@ if csv_file is not None:
                 {msg}
             </div>""", unsafe_allow_html=True)
 
-        # Line Chart
         chart_header("Line Chart")
         if len(numeric_cols) < 2:
             error_box("Numeric data is insufficient to generate a Line Chart.")
@@ -674,7 +671,6 @@ if csv_file is not None:
             st.plotly_chart(fig, use_container_width=True)
         st.markdown("---")
 
-        # Scatter Plot
         chart_header("Scatter Plot")
         if len(numeric_cols) < 2:
             error_box("Numeric data is insufficient to generate a Scatter Plot.")
@@ -689,7 +685,6 @@ if csv_file is not None:
             st.plotly_chart(fig, use_container_width=True)
         st.markdown("---")
 
-        # Bar Chart
         chart_header("Bar Chart")
         if not categorical_cols or not numeric_cols:
             error_box("Suitable columns are unavailable for generating a Bar Chart.")
@@ -705,7 +700,6 @@ if csv_file is not None:
             st.plotly_chart(fig, use_container_width=True)
         st.markdown("---")
 
-        # Histogram
         chart_header("Histogram")
         if not numeric_cols:
             error_box("No numeric columns available for Histogram.")
@@ -716,7 +710,6 @@ if csv_file is not None:
             st.plotly_chart(fig, use_container_width=True)
         st.markdown("---")
 
-        # Pie Chart
         chart_header("Pie Chart")
         if not categorical_cols:
             error_box("No categorical columns available for Pie Chart.")
@@ -729,7 +722,6 @@ if csv_file is not None:
             st.plotly_chart(fig, use_container_width=True)
         st.markdown("---")
 
-        # Heatmap
         chart_header("Heatmap")
         if len(numeric_cols) < 2:
             error_box("At least 2 numeric columns are required for Heatmap.")
@@ -775,7 +767,6 @@ if csv_file is not None:
             calculate = st.button("Calculate Completeness Score")
 
         if calculate:
-            # ── Uses the single shared function ──
             score = data_completeness_score(df)
 
             st.metric("Score", f"{score} / 100")
@@ -813,7 +804,13 @@ if csv_file is not None:
         if st.button("Generate CSV Report"):
             buf_pdf   = io.BytesIO()
             file_name = csv_file.name
-            doc       = SimpleDocTemplate(buf_pdf, pagesize=A4)
+            num_df_cols=df.shape[1]
+            use_landscape = num_df_cols > 8
+            page_size = landscape(A4) if use_landscape else A4
+            usable_width = page_size[0] - 1.2 * inch
+            doc      = SimpleDocTemplate(buf_pdf, pagesize=page_size,
+                                         rightMargin=0.6*inch, leftMargin=0.6*inch,
+                                         topMargin=0.6*inch, bottomMargin=0.6*inch)
             styles    = getSampleStyleSheet()
             story     = []
 
@@ -826,14 +823,11 @@ if csv_file is not None:
             def add_page_number(canvas, doc):
                 canvas.saveState()
                 canvas.setFont("Helvetica", 9)
-                canvas.drawCentredString(A4[0] / 2, 0.5 * inch, f"Page {canvas.getPageNumber()}")
+                canvas.drawCentredString(page_size[0] / 2, 0.5 * inch, f"Page {canvas.getPageNumber()}")
                 canvas.restoreState()
-
-            # Title
             story.append(Paragraph("<b>CSV DATALENS REPORT</b>", styles["Title"]))
             story.append(Spacer(1, 20))
 
-            # Dataset overview
             rows_count       = df.shape[0]
             cols_count       = df.shape[1]
             columns_list     = ", ".join(df.columns)
@@ -853,10 +847,10 @@ if csv_file is not None:
             story.append(Paragraph(info, styles["Normal"]))
             story.append(Spacer(1, 10))
 
-            # Data Type Summary table
             story.append(Paragraph("Data Type Summary", centered_style))
             dtype_data = [["Column Name", "Data Type"]] + [[col, str(dtype)] for col, dtype in df.dtypes.items()]
-            dtype_table = Table(dtype_data, colWidths=[300, 150])
+            dtype_col_widths = [usable_width * 0.6, usable_width * 0.4]
+            dtype_table = Table(dtype_data, colWidths=dtype_col_widths)
             dtype_table.setStyle(TableStyle([
                 ("BACKGROUND",    (0, 0), (-1, 0),  colors.HexColor("#D9EAF7")),
                 ("TEXTCOLOR",     (0, 0), (-1, 0),  colors.black),
@@ -872,28 +866,32 @@ if csv_file is not None:
             ]))
             story.append(dtype_table)
 
-            # Statistical Summary table
             describe_df = df.describe().round(2)
             stat_data   = [["Statistic"] + describe_df.columns.tolist()]
             for idx, row in describe_df.iterrows():
                 stat_data.append([idx] + row.tolist())
 
-            stat_table = Table(stat_data)
+            total_stat_cols = 1 + len(describe_df.columns)
+            stat_col_width = usable_width / total_stat_cols
+            font_size = max(5, min(9, int(90 / total_stat_cols)))
+
+            stat_table = Table(stat_data, colWidths=[stat_col_width] * total_stat_cols)
             stat_table.setStyle(TableStyle([
                 ("BACKGROUND",    (0, 0), (-1, 0),  colors.HexColor("#D9EAF7")),
                 ("TEXTCOLOR",     (0, 0), (-1, 0),  colors.black),
                 ("FONTNAME",      (0, 0), (-1, 0),  "Helvetica-Bold"),
+                ("FONTSIZE",      (0, 0), (-1, -1), font_size),
                 ("BACKGROUND",    (0, 1), (-1, -1), colors.white),
                 ("GRID",          (0, 0), (-1, -1), 0.5, colors.grey),
-                ("BOTTOMPADDING", (0, 0), (-1, 0),  10),
-                ("TOPPADDING",    (0, 0), (-1, 0),  10),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                ("TOPPADDING",    (0, 0), (-1, -1), 4),
+                ("ALIGN",         (1, 0), (-1, -1), "RIGHT"),
             ]))
             story.append(PageBreak())
             story.append(Paragraph("Statistical Summary", centered_style))
             story.append(Spacer(1, 10))
             story.append(stat_table)
 
-            # Auto-cleaning for report
             temp = df.dropna().drop_duplicates().reset_index(drop=True)
             obj_cols = temp.select_dtypes(include="object").columns.tolist()
             if obj_cols:
@@ -922,7 +920,6 @@ if csv_file is not None:
             ))
             story.append(Spacer(1, 10))
 
-            # Correlation Heatmap
             num_cols = temp.select_dtypes(include=["int64", "float64"]).columns.tolist()
             if len(num_cols) >= 2:
                 corr    = temp[num_cols].corr()
@@ -943,8 +940,6 @@ if csv_file is not None:
                     styles["Normal"],
                 ))
 
-            # ── Data Completeness Score ──────────────
-            # Uses the SAME function as the "Data Completeness score" tab
             score = data_completeness_score(df)
 
             story.append(Paragraph("Data Completeness Score", centered_style))
@@ -956,13 +951,11 @@ if csv_file is not None:
                 styles["Normal"],
             ))
 
-            # Build PDF
             doc.build(story, onFirstPage=add_page_number, onLaterPages=add_page_number)
             buf_pdf.seek(0)
             st.session_state.pdf_data = buf_pdf.getvalue()
             st.success("Report generated successfully!")
 
-        # Preview & Download
         if "pdf_data" in st.session_state:
             b64 = base64.b64encode(st.session_state.pdf_data).decode("utf-8")
             st.markdown(
