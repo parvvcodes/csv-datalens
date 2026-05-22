@@ -148,20 +148,27 @@ Please ensure your code follows consistent formatting and includes comments wher
 
 ## Interface Preview
 
-### Data Summary
-![Dataset summary](assets/Data_summary.png)
+### Homepage
+![Homepage](assets/homepage.png)
 
-### completeness_score.png
-![completeness_score](assets/completeness_score.png)
+### Data Summary
+![Summary](assets/summary.png)
+
+### Search
+![search](assets/search.png)
+
+### Data Cleaning
+![data_cleaning](assets/cleaning.png)
 
 ### Visualization
 ![Visualization](assets/Visualization.png)
 
-### Report_pg1
-![Report_1](assets/report.png)
+### Completeness Score
+![score](assets/completeness.png)
 
-### Report_pg2
-![Report_2](assets/Report2.png)
+### Report
+![report](assets/report.png)
+
 
 ## License
 
