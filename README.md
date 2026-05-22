@@ -146,7 +146,7 @@ Please ensure your code follows consistent formatting and includes comments wher
 
 ---
 
-## Screenshots
+## Interface Preview
 
 ### Data Summary
 ![Dataset summary](assets/Data_summary.png)
