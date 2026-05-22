@@ -158,7 +158,7 @@ Please ensure your code follows consistent formatting and includes comments wher
 ![Visualization](assets/Visualization.png)
 
 ### Report_pg1
-![Report_1(assets/report.png)
+![Report_1](assets/report.png)
 
 ### Report_pg2
 ![Report_2](assets/Report2.png)
