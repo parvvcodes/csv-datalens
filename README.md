@@ -161,7 +161,7 @@ Please ensure your code follows consistent formatting and includes comments wher
 ![data_cleaning](assets/cleaning.png)
 
 ### Visualization
-![Visualization](assets/Visualization.png)
+![Visualization](assets/visualization.png)
 
 ### Completeness Score
 ![score](assets/completeness.png)
